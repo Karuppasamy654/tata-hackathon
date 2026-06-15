@@ -125,7 +125,8 @@ export function useSimulation() {
     // ── Risk prediction (backend ML → client fallback) ──
     let risk: RiskResult = { score: 0, level: 'low', factors: [], color: '#00ff88' };
     try {
-      const res = await fetch('http://localhost:8000/predict-risk', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_URL}/predict-risk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

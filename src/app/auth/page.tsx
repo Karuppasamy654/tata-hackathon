@@ -25,7 +25,8 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
-      const url = isLogin ? 'http://localhost:8000/auth/login' : 'http://localhost:8000/auth/register';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const url = isLogin ? `${API_URL}/auth/login` : `${API_URL}/auth/register`;
       const body = isLogin ? { email, password } : { name, email, password };
 
       const res = await fetch(url, {
