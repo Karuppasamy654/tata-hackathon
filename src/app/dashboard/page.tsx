@@ -42,10 +42,12 @@ export default function Dashboard() {
   }, [authLoading, user, router]);
 
   useEffect(() => {
-    // Hide welcome banner after 4 seconds
-    const timer = setTimeout(() => setShowWelcome(false), 4000);
-    return () => clearTimeout(timer);
-  }, []);
+    if (user) {
+      // Hide welcome banner 4 seconds after user is loaded
+      const timer = setTimeout(() => setShowWelcome(false), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!isMuted && alerts.length > prevAlertCountRef.current) {
@@ -98,6 +100,7 @@ export default function Dashboard() {
       <AnimatePresence>
         {showWelcome && user && (
           <motion.div
+            key="welcome-banner"
             initial={{ opacity: 0, y: -40, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: -20, x: '-50%' }}
