@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useSimulation } from '@/hooks/useSimulation';
 import { useSoundAlert } from '@/hooks/useSoundAlert';
@@ -32,13 +32,20 @@ export default function Dashboard() {
   } = useSimulation();
 
   const { playAlert } = useSoundAlert();
-  const [isDark, setIsDark]     = useState(true);
-  const [isMuted, setIsMuted]   = useState(true);
-  const prevAlertCountRef       = useRef(0);
+  const [isDark, setIsDark]       = useState(true);
+  const [isMuted, setIsMuted]     = useState(true);
+  const [showWelcome, setShowWelcome] = useState(true);
+  const prevAlertCountRef         = useRef(0);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth');
   }, [authLoading, user, router]);
+
+  useEffect(() => {
+    // Hide welcome banner after 4 seconds
+    const timer = setTimeout(() => setShowWelcome(false), 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!isMuted && alerts.length > prevAlertCountRef.current) {
@@ -86,6 +93,39 @@ export default function Dashboard() {
       {/* Global overlays */}
       <EmergencyOverlay isVisible={isEmergency} onDismiss={handleEmergencyDismiss} />
       <NearMissReplay isOpen={showReplay} events={replayEvents} onClose={closeReplay} />
+
+      {/* Welcome Banner */}
+      <AnimatePresence>
+        {showWelcome && user && (
+          <motion.div
+            initial={{ opacity: 0, y: -40, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+            style={{
+              position: 'fixed',
+              top: '90px',
+              left: '50%',
+              background: 'rgba(0, 212, 255, 0.12)',
+              border: '1px solid rgba(0, 212, 255, 0.3)',
+              backdropFilter: 'blur(12px)',
+              padding: '12px 28px',
+              borderRadius: '30px',
+              color: '#fff',
+              fontSize: '1.1rem',
+              fontWeight: 500,
+              zIndex: 100,
+              boxShadow: '0 4px 30px rgba(0, 212, 255, 0.2), inset 0 0 20px rgba(0, 212, 255, 0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}
+          >
+            <span style={{ fontSize: '1.4rem' }}>👋</span>
+            Welcome back, <span style={{ color: '#00d4ff', fontWeight: 700, textShadow: '0 0 10px rgba(0,212,255,0.5)' }}>{user.name}</span>!
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="dashboard">
         <TopBar
