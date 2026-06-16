@@ -35,17 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // Check for token on mount
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken);
-      fetchUser(storedToken);
-    } else {
-      setIsLoading(false);
-    }
-  }, []);
-
   const fetchUser = async (authToken: string) => {
     try {
       if (authToken === 'mock-token-for-local-testing') {
@@ -67,13 +56,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fallback for demo
         setUser({ id: 1, name: 'Guest Pilot', email: 'guest@example.com', safety_score: 100, driving_sessions: 0 });
       }
-    } catch (error) {
+    } catch (_err) {
       // Fallback for demo
       setUser({ id: 1, name: 'Guest Pilot', email: 'guest@example.com', safety_score: 100, driving_sessions: 0 });
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Check for token on mount
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+      const t = setTimeout(() => {
+        setToken(storedToken);
+      }, 0);
+      fetchUser(storedToken);
+      return () => clearTimeout(t);
+    } else {
+      const t = setTimeout(() => {
+        setIsLoading(false);
+      }, 0);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = (newToken: string) => {
     localStorage.setItem('token', newToken);

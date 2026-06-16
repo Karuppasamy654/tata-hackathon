@@ -15,12 +15,16 @@ export default function EmergencyOverlay({ isVisible, onDismiss }: EmergencyOver
 
   useEffect(() => {
     if (!isVisible) {
+      const t = setTimeout(() => {
+        setCanDismiss(false);
+        setCountdown(5);
+      }, 0);
+      return () => clearTimeout(t);
+    }
+    const t2 = setTimeout(() => {
       setCanDismiss(false);
       setCountdown(5);
-      return;
-    }
-    setCanDismiss(false);
-    setCountdown(5);
+    }, 0);
 
     // Alternating hazard lights
     const hazardId = setInterval(() => setHazardLeft(h => !h), 480);
@@ -30,6 +34,7 @@ export default function EmergencyOverlay({ isVisible, onDismiss }: EmergencyOver
     const countId = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
 
     return () => {
+      clearTimeout(t2);
       clearInterval(hazardId);
       clearTimeout(dismissId);
       clearInterval(countId);

@@ -57,7 +57,7 @@ export default function Dashboard() {
   // Speak alerts
   useEffect(() => {
     if (!isMuted && riskResult.voiceMessage) {
-      speak(riskResult.voiceMessage, riskResult.level as any);
+      speak(riskResult.voiceMessage, riskResult.level as import('@/hooks/useVoiceAssistant').AlertPriority);
     }
   }, [riskResult.voiceMessage, riskResult.level, isMuted, speak]);
 
@@ -199,7 +199,7 @@ export default function Dashboard() {
             >
               <RiskMeter
                 score={riskResult.score}
-                level={riskResult.level as any}
+                level={riskResult.level as import('@/hooks/useVoiceAssistant').AlertPriority | 'NONE'}
                 color={riskResult.color}
                 factors={riskResult.factors}
               />
@@ -235,7 +235,7 @@ export default function Dashboard() {
                {riskResult.voiceMessage && (
                  <div className="mt-4 p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center gap-3">
                    <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                   <p className="text-sm text-cyan-300 font-mono italic">"{riskResult.voiceMessage}"</p>
+                   <p className="text-sm text-cyan-300 font-mono italic">&quot;{riskResult.voiceMessage}&quot;</p>
                  </div>
                )}
             </motion.div>

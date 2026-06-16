@@ -43,7 +43,13 @@ export default function NearMissReplay({ isOpen, events, onClose }: NearMissRepl
   const [isPlaying, setIsPlaying] = useState(true);
 
   useEffect(() => {
-    if (isOpen) { setActiveIdx(0); setIsPlaying(true); }
+    if (isOpen) { 
+      const t = setTimeout(() => {
+        setActiveIdx(0); 
+        setIsPlaying(true); 
+      }, 0);
+      return () => clearTimeout(t);
+    }
   }, [isOpen]);
 
   useEffect(() => {

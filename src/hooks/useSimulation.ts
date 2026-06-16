@@ -17,7 +17,7 @@ export function useSimulation(faceState: FaceState) {
   const [isRunning, setIsRunning] = useState(false);
   const [currentData, setCurrentData] = useState<DrivingData>({
     speed: 0, acceleration: 0, brakeIntensity: 0,
-    distanceToVehicle: 50, steeringAngle: 0, timestamp: Date.now(),
+    distanceToVehicle: 50, steeringAngle: 0, timestamp: 0,
   });
   const [riskResult, setRiskResult] = useState<RiskResult>({
     score: 0, level: 'NONE', factors: [], color: '#00ff88', explanation: 'Awaiting data...', voiceMessage: ''
@@ -36,8 +36,12 @@ export function useSimulation(faceState: FaceState) {
   const prevDataRef            = useRef<DrivingData | undefined>(undefined);
   const totalAlertsRef         = useRef(0);
   const replayIndexRef         = useRef(-1);
-  const consecutiveHighRiskRef = useRef(0);
   const emergencyTimeoutRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const faceStateRef           = useRef<FaceState>(faceState);
+
+  useEffect(() => {
+    faceStateRef.current = faceState;
+  }, [faceState]);
 
   // Auto-dismiss stale alerts
   useEffect(() => {
@@ -69,7 +73,7 @@ export function useSimulation(faceState: FaceState) {
     setCurrentData(data);
 
     // ── Risk prediction ──
-    const risk = calculateRiskScore(data, faceState);
+    const risk = calculateRiskScore(data, faceStateRef.current);
     setRiskResult(risk);
 
     if (risk.score >= EMERGENCY_THRESHOLD || risk.level === 'CRITICAL') {
@@ -96,7 +100,7 @@ export function useSimulation(faceState: FaceState) {
       totalAlertsRef.current += newAlerts.length;
       setAlerts(prev => [...newAlerts, ...prev].slice(0, MAX_ALERTS));
     }
-  }, [faceState]);
+  }, []);
 
   const start = useCallback(() => {
     if (intervalRef.current) return;
@@ -143,14 +147,6 @@ export function useSimulation(faceState: FaceState) {
       if (emergencyTimeoutRef.current) clearTimeout(emergencyTimeoutRef.current);
     };
   }, []);
-
-  // Sync processTick with interval when faceState changes
-  useEffect(() => {
-    if (isRunning) {
-      stop();
-      start();
-    }
-  }, [faceState, isRunning, start, stop]);
 
   return {
     isRunning, currentData, riskResult, alerts, history, driverProfile, isEmergency,
