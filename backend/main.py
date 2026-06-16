@@ -76,10 +76,18 @@ class TelemetryData(BaseModel):
     distance_to_vehicle: float
     steering_angle: float
 
+class PredictRiskRequest(BaseModel):
+    telemetry: List[TelemetryData]
+    emotion: str = "focused"
+
 class RiskPrediction(BaseModel):
     risk_score: float
     risk_class: str
     factors: List[str]
+    accident_probability: float
+    time_to_impact: float
+    intervention: bool
+    message: str
 
 class UpdateScoreRequest(BaseModel):
     session_score: float  # 0-100, higher = safer
@@ -162,26 +170,32 @@ def update_score(
 # --- ML Prediction Endpoint ---
 
 @app.post("/predict-risk", response_model=RiskPrediction)
-def predict_risk(telemetry: TelemetryData):
+def predict_risk(payload: PredictRiskRequest):
     global regressor, classifier
     if not regressor or not classifier:
         load_models()
         if not regressor:
             raise HTTPException(status_code=503, detail="ML Models not loaded")
             
+    if not payload.telemetry:
+        raise HTTPException(status_code=400, detail="No telemetry data provided")
+        
+    # Use latest frame for primary risk scoring
+    current_frame = payload.telemetry[-1]
+            
     # Calculate TTC
     ttc = 999.0
-    if telemetry.speed > 0:
-        ttc = telemetry.distance_to_vehicle / (telemetry.speed * 0.27778)
-    ttc = min(max(ttc, 0), 10)
+    if current_frame.speed > 0:
+        ttc = current_frame.distance_to_vehicle / (current_frame.speed * 0.27778)
+    ttc = min(max(ttc, 0), 10.0)
     
     # Create input dataframe matching training features
     input_df = pd.DataFrame([{
-        'speed': telemetry.speed,
-        'acceleration': telemetry.acceleration,
-        'brake_intensity': telemetry.brake_intensity,
-        'distance_to_vehicle': telemetry.distance_to_vehicle,
-        'steering_angle': telemetry.steering_angle,
+        'speed': current_frame.speed,
+        'acceleration': current_frame.acceleration,
+        'brake_intensity': current_frame.brake_intensity,
+        'distance_to_vehicle': current_frame.distance_to_vehicle,
+        'steering_angle': current_frame.steering_angle,
         'time_to_collision': ttc
     }])
     
@@ -198,28 +212,49 @@ def predict_risk(telemetry: TelemetryData):
     hybrid_score = ml_score
     factors = []
     
-    if telemetry.speed > 80 and telemetry.distance_to_vehicle < 15:
+    if current_frame.speed > 80 and current_frame.distance_to_vehicle < 15:
         hybrid_score += 25.0
         factors.append("Critical Tailgating")
-    elif telemetry.speed > 80:
+    elif current_frame.speed > 80:
         factors.append("High Speed")
         
-    if abs(telemetry.steering_angle) > 30 and telemetry.speed > 60:
+    if abs(current_frame.steering_angle) > 30 and current_frame.speed > 60:
         hybrid_score += 20.0
         factors.append("Dangerous Turn")
-    elif abs(telemetry.steering_angle) > 25:
+    elif abs(current_frame.steering_angle) > 25:
         factors.append("Sharp Turn")
         
-    if telemetry.brake_intensity > 0.7:
+    if current_frame.brake_intensity > 0.7:
         hybrid_score += 15.0
         factors.append("Emergency Braking")
-    elif telemetry.brake_intensity > 0.4:
+    elif current_frame.brake_intensity > 0.4:
         factors.append("Hard Braking")
         
-    if telemetry.distance_to_vehicle < 10:
+    if current_frame.distance_to_vehicle < 10:
         hybrid_score += 10.0
         factors.append("Close Proximity")
         
+    # --- EMOTION FUSION ---
+    emotion = payload.emotion.lower()
+    if emotion == "sleepy":
+        if current_frame.speed > 50:
+            hybrid_score += 30.0
+            factors.append("Sleepy at Speed (CRITICAL)")
+        else:
+            hybrid_score += 15.0
+            factors.append("Driver Sleepy")
+    elif emotion == "distracted":
+        if abs(current_frame.steering_angle) > 10:
+            hybrid_score += 20.0
+            factors.append("Distracted + Steering Variance")
+        else:
+            hybrid_score += 10.0
+            factors.append("Driver Distracted")
+    elif emotion == "angry":
+        if current_frame.acceleration > 0.5 or current_frame.brake_intensity > 0.5:
+            hybrid_score += 15.0
+            factors.append("Aggressive Driving Behavior")
+            
     # Cap score at 100
     final_score = max(0.0, min(100.0, hybrid_score))
     
@@ -229,9 +264,39 @@ def predict_risk(telemetry: TelemetryData):
         final_class = "danger"
     elif final_score >= 40 and final_class == "safe":
         final_class = "warning"
+        
+    # --- ACCIDENT PREDICTION MODEL ---
+    # Calculate accident probability based on recent history and final score
+    base_prob = final_score / 100.0
+    
+    # Trend analysis from history
+    trend_penalty = 0.0
+    if len(payload.telemetry) >= 3:
+        past_distance = payload.telemetry[0].distance_to_vehicle
+        current_distance = current_frame.distance_to_vehicle
+        if current_distance < past_distance and current_frame.speed > 60:
+            trend_penalty = 0.15  # Distance closing rapidly at speed
+            
+    if ttc < 2.0:
+        base_prob = max(base_prob, 0.85)
+    elif ttc < 3.5:
+        base_prob = max(base_prob, 0.65)
+        
+    final_prob = min(1.0, max(0.0, base_prob + trend_penalty))
+    
+    # --- SMART EMERGENCY SYSTEM ---
+    intervention = False
+    message = ""
+    if final_prob > 0.75:
+        intervention = True
+        message = "⚠️ AI TOOK CONTROL: Emergency braking applied to prevent collision."
     
     return {
         "risk_score": final_score,
         "risk_class": final_class,
-        "factors": factors
+        "factors": factors,
+        "accident_probability": round(final_prob * 100, 1),
+        "time_to_impact": round(ttc, 1) if ttc < 10 else 99.9,
+        "intervention": intervention,
+        "message": message
     }

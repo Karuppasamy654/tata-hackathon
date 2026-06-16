@@ -26,7 +26,7 @@ export default function Dashboard() {
 
   const {
     isRunning, currentData, riskResult, alerts, history, driverProfile,
-    emotionState, accidentProbability, isEmergency, replayEvents, showReplay,
+    emotionState, accidentProbability, timeToImpact, isEmergency, replayEvents, showReplay,
     start, stop, reset, replayScenario, clearAlerts,
     dismissEmergency, openReplay, closeReplay,
   } = useSimulation();
@@ -189,7 +189,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              <AccidentProbability probability={accidentProbability} />
+              <AccidentProbability probability={accidentProbability} timeToImpact={timeToImpact} />
             </motion.div>
 
             <motion.div

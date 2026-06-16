@@ -63,6 +63,7 @@ export function useSimulation() {
     reason: 'Awaiting data...', alertLevel: 'none',
   });
   const [accidentProbability, setAccidentProbability] = useState(0);
+  const [timeToImpact, setTimeToImpact]               = useState<number | undefined>(undefined);
   const [isEmergency, setIsEmergency]                 = useState(false);
   const [replayEvents, setReplayEvents]               = useState<DrivingData[]>([]);
   const [showReplay, setShowReplay]                   = useState(false);
@@ -130,11 +131,14 @@ export function useSimulation() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          speed:              data.speed,
-          acceleration:       data.acceleration,
-          brake_intensity:    data.brakeIntensity,
-          distance_to_vehicle: data.distanceToVehicle,
-          steering_angle:     data.steeringAngle,
+          telemetry: telemetryHistoryRef.current.map(d => ({
+            speed: d.speed,
+            acceleration: d.acceleration,
+            brake_intensity: d.brakeIntensity,
+            distance_to_vehicle: d.distanceToVehicle,
+            steering_angle: d.steeringAngle,
+          })),
+          emotion: emotion.emotion,
         }),
       });
       if (res.ok) {
@@ -144,31 +148,44 @@ export function useSimulation() {
         if (pred.risk_class === 'danger')  { level = 'high';   color = '#ff3366'; }
         else if (pred.risk_class === 'warning') { level = 'medium'; color = '#ffd600'; }
         risk = { score: Math.round(pred.risk_score), level, factors: pred.factors, color };
+        
+        // Use backend accident prediction and emergency triggers
+        setAccidentProbability(pred.accident_probability);
+        setTimeToImpact(pred.time_to_impact);
+        
+        if (pred.intervention) {
+          setIsEmergency(true);
+          setReplayEvents([...incidentFramesRef.current]);
+          if (emergencyTimeoutRef.current) clearTimeout(emergencyTimeoutRef.current);
+          emergencyTimeoutRef.current = setTimeout(() => setIsEmergency(false), 8000);
+        }
+      } else {
+        throw new Error('API Error');
       }
     } catch {
       // Client-side fallback
       const cr = calculateRiskScore(data);
       risk = { score: cr.score, level: cr.level, factors: cr.factors, color: cr.color };
+      
+      recentRiskScoresRef.current = [...recentRiskScoresRef.current, risk.score].slice(-10);
+      setAccidentProbability(computeAccidentProbability(recentRiskScoresRef.current));
+      setTimeToImpact(undefined);
+      
+      // Fallback emergency detection
+      if (risk.score >= EMERGENCY_THRESHOLD) {
+        consecutiveHighRiskRef.current++;
+        if (consecutiveHighRiskRef.current >= EMERGENCY_TICKS) {
+          setIsEmergency(true);
+          setReplayEvents([...incidentFramesRef.current]);
+          if (emergencyTimeoutRef.current) clearTimeout(emergencyTimeoutRef.current);
+          emergencyTimeoutRef.current = setTimeout(() => setIsEmergency(false), 8000);
+        }
+      } else {
+        consecutiveHighRiskRef.current = 0;
+      }
     }
 
     setRiskResult(risk);
-
-    // ── Accident probability (last N risk scores) ──
-    recentRiskScoresRef.current = [...recentRiskScoresRef.current, risk.score].slice(-10);
-    setAccidentProbability(computeAccidentProbability(recentRiskScoresRef.current));
-
-    // ── Emergency detection ──
-    if (risk.score >= EMERGENCY_THRESHOLD) {
-      consecutiveHighRiskRef.current++;
-      if (consecutiveHighRiskRef.current >= EMERGENCY_TICKS) {
-        setIsEmergency(true);
-        setReplayEvents([...incidentFramesRef.current]);
-        if (emergencyTimeoutRef.current) clearTimeout(emergencyTimeoutRef.current);
-        emergencyTimeoutRef.current = setTimeout(() => setIsEmergency(false), 8000);
-      }
-    } else {
-      consecutiveHighRiskRef.current = 0;
-    }
 
     // ── History & driver profile ──
     setHistory(prev => {
@@ -214,6 +231,7 @@ export function useSimulation() {
     setDriverProfile({ overallScore: 100, safePercentage: 100, riskyPercentage: 0, trend: 'stable', totalAlerts: 0, avgSpeed: 0, maxRiskScore: 0 });
     setEmotionState({ emotion: 'focused', label: 'FOCUSED', icon: '😎', color: '#00d4ff', reason: 'Awaiting data...', alertLevel: 'none' });
     setAccidentProbability(0);
+    setTimeToImpact(undefined);
     setIsEmergency(false);
     setReplayEvents([]);
     setShowReplay(false);
@@ -242,7 +260,7 @@ export function useSimulation() {
 
   return {
     isRunning, currentData, riskResult, alerts, history, driverProfile,
-    emotionState, accidentProbability, isEmergency, replayEvents, showReplay,
+    emotionState, accidentProbability, timeToImpact, isEmergency, replayEvents, showReplay,
     start, stop, reset, replayScenario, clearAlerts,
     dismissEmergency, openReplay, closeReplay,
   };

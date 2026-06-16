@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 interface AccidentProbabilityProps {
   probability: number; // 0–100
+  timeToImpact?: number;
 }
 
 function AnimatedCounter({ value }: { value: number }) {
@@ -30,7 +31,7 @@ function AnimatedCounter({ value }: { value: number }) {
   return <>{display}</>;
 }
 
-export default function AccidentProbability({ probability }: AccidentProbabilityProps) {
+export default function AccidentProbability({ probability, timeToImpact }: AccidentProbabilityProps) {
   const isCritical = probability >= 70;
   const isWarning  = probability >= 40;
   const color      = isCritical ? '#ff3366' : isWarning ? '#ffd600' : '#00ff88';
@@ -75,6 +76,28 @@ export default function AccidentProbability({ probability }: AccidentProbability
         <motion.div className="accident-prob-label" animate={{ color }} transition={{ duration: 0.4 }}>
           {isCritical ? 'CRITICAL RISK' : isWarning ? 'ELEVATED RISK' : 'LOW RISK'}
         </motion.div>
+
+        {/* Time to impact */}
+        {timeToImpact !== undefined && timeToImpact < 10 && (
+          <motion.div 
+            className="accident-prob-tti"
+            animate={{ 
+              color, 
+              opacity: isCritical ? [1, 0.4, 1] : 1,
+              scale: isCritical ? [1, 1.05, 1] : 1
+            }}
+            transition={{ repeat: isCritical ? Infinity : 0, duration: 0.5 }}
+            style={{ 
+              marginTop: '12px', 
+              fontSize: '1.1rem', 
+              fontWeight: 700, 
+              letterSpacing: '1px',
+              fontFamily: 'Orbitron, sans-serif'
+            }}
+          >
+            Impact in: {timeToImpact.toFixed(1)}s
+          </motion.div>
+        )}
 
         {/* Progress bar */}
         <div className="accident-prob-bar-track">
