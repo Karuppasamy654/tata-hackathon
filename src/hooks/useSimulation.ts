@@ -36,6 +36,7 @@ export function useSimulation(faceState: FaceState) {
   const prevDataRef            = useRef<DrivingData | undefined>(undefined);
   const totalAlertsRef         = useRef(0);
   const replayIndexRef         = useRef(-1);
+  const consecutiveHighRiskRef = useRef(0);
   const emergencyTimeoutRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const faceStateRef           = useRef<FaceState>(faceState);
 
