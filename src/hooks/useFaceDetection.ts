@@ -30,10 +30,12 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
 
     async function loadModels() {
       try {
+        console.log('Starting to load models from /models...');
+        const path = window.location.origin + '/models';
         await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-          faceapi.nets.faceExpressionNet.loadFromUri('/models')
+          faceapi.nets.tinyFaceDetector.loadFromUri(path),
+          faceapi.nets.faceLandmark68Net.loadFromUri(path),
+          faceapi.nets.faceExpressionNet.loadFromUri(path)
         ]);
         console.log('Face API Models loaded successfully!');
         if (active) isLoaded.current = true;
@@ -72,6 +74,12 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
         lastRun = now;
 
         try {
+          if (!video.videoWidth || !video.videoHeight) {
+             console.log('Video dimensions are 0, waiting...');
+             frameId.current = requestAnimationFrame(detect);
+             return;
+          }
+
           const detection = await faceapi
             .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
             .withFaceLandmarks()
