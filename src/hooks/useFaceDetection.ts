@@ -19,6 +19,7 @@ function calculateEAR(eye: faceapi.Point[]) {
 
 export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | null>) {
   const [faceState, setFaceState] = useState<FaceState>('CALIBRATING');
+  const [modelError, setModelError] = useState<string | null>(null);
   const isLoaded = useRef(false);
   const frameId = useRef<number>(0);
   const consecutiveSleepyFrames = useRef(0);
@@ -36,9 +37,12 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
         ]);
         console.log('Face API Models loaded successfully!');
         if (active) isLoaded.current = true;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error loading face-api models:', err);
-        if (active) setFaceState('CALIBRATING'); // fallback
+        if (active) {
+          setModelError(err.message || String(err));
+          setFaceState('CALIBRATING');
+        }
       }
     }
 
@@ -58,7 +62,7 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
     const DETECTION_INTERVAL = 500; // run every 500ms to save CPU
 
     const detect = async () => {
-      if (!isLoaded.current || !video || video.paused || video.ended) {
+      if (!isLoaded.current || !video || video.paused || video.ended || video.readyState < 2) {
         frameId.current = requestAnimationFrame(detect);
         return;
       }
@@ -142,5 +146,5 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
 
   }, [videoRef]);
 
-  return { faceState };
+  return { faceState, modelError };
 }

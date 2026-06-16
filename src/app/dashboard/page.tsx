@@ -24,7 +24,8 @@ export default function Dashboard() {
 
   // Face Detection (Driver State)
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { faceState } = useFaceDetection(videoRef);
+  const { faceState, modelError } = useFaceDetection(videoRef);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   // Simulation & Telemetry
   const {
@@ -47,9 +48,10 @@ export default function Dashboard() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           // Force play for browsers that ignore autoPlay attribute
-          await videoRef.current.play().catch(e => console.warn('AutoPlay blocked:', e));
+          await videoRef.current.play().catch(e => setCameraError(`AutoPlay blocked: ${e.message}`));
         }
-      } catch (err) {
+      } catch (err: any) {
+        setCameraError(err.message || String(err));
         console.error("Error accessing webcam:", err);
       }
     }
@@ -178,6 +180,15 @@ export default function Dashboard() {
                 <div className="absolute inset-0 pointer-events-none border-2 border-cyan-500/20">
                   <div className="w-full h-1 bg-cyan-500/50 absolute top-0 animate-scan" style={{ boxShadow: '0 0 10px #00d4ff' }} />
                 </div>
+                {/* Error Overlay */}
+                {(cameraError || modelError) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-red-400 p-4 text-center z-10">
+                    <span className="text-3xl mb-2">⚠️</span>
+                    <p className="text-sm font-bold mb-1">AI Vision Offline</p>
+                    {cameraError && <p className="text-xs">Cam Error: {cameraError}</p>}
+                    {modelError && <p className="text-xs">Model Error: {modelError}</p>}
+                  </div>
+                )}
               </div>
             </motion.div>
 
