@@ -46,6 +46,8 @@ export default function Dashboard() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          // Force play for browsers that ignore autoPlay attribute
+          await videoRef.current.play().catch(e => console.warn('AutoPlay blocked:', e));
         }
       } catch (err) {
         console.error("Error accessing webcam:", err);

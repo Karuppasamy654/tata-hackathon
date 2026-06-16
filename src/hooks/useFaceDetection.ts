@@ -34,9 +34,11 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
           faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
           faceapi.nets.faceExpressionNet.loadFromUri('/models')
         ]);
+        console.log('Face API Models loaded successfully!');
         if (active) isLoaded.current = true;
       } catch (err) {
         console.error('Error loading face-api models:', err);
+        if (active) setFaceState('CALIBRATING'); // fallback
       }
     }
 
