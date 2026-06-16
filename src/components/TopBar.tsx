@@ -19,12 +19,14 @@ interface TopBarProps {
   onExport: () => void;
   onToggleTheme: () => void;
   onToggleMute: () => void;
+  mode: 'auto' | 'interactive';
+  onToggleMode: () => void;
 }
 
 export default function TopBar({
-  isRunning, isDark, isMuted, isEmergency = false,
+  isRunning, isDark, isMuted, isEmergency = false, mode,
   onStart, onStop, onReset, onReplay, onExport,
-  onToggleTheme, onToggleMute,
+  onToggleTheme, onToggleMute, onToggleMode,
 }: TopBarProps) {
   const { user, logout } = useAuth();
 
@@ -91,6 +93,17 @@ export default function TopBar({
           >
             <RotateCcw size={16} />
             <span>Reset</span>
+          </motion.button>
+
+          <motion.button
+            className={`ctrl-btn ${mode === 'interactive' ? 'ctrl-btn--accent' : ''}`}
+            onClick={onToggleMode}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title="Toggle Interactive Game Mode"
+            style={{ padding: '0 16px' }}
+          >
+            <span>{mode === 'interactive' ? '🎮 Game Mode' : '🤖 Auto Mode'}</span>
           </motion.button>
 
           <motion.button

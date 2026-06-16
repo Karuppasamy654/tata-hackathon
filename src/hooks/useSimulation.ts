@@ -44,6 +44,7 @@ function computeAccidentProbability(riskScores: number[]): number {
 }
 
 export function useSimulation() {
+  const [mode, setMode] = useState<'auto' | 'interactive'>('auto');
   const [isRunning, setIsRunning] = useState(false);
   const [currentData, setCurrentData] = useState<DrivingData>({
     speed: 0, acceleration: 0, brakeIntensity: 0,
@@ -79,6 +80,11 @@ export function useSimulation() {
   const consecutiveHighRiskRef = useRef(0);
   const incidentFramesRef      = useRef<DrivingData[]>([]);
   const emergencyTimeoutRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const interactiveDataRef     = useRef<DrivingData | null>(null);
+
+  const updateInteractiveData = useCallback((data: DrivingData) => {
+    interactiveDataRef.current = data;
+  }, []);
 
   // Auto-dismiss stale alerts
   useEffect(() => {
@@ -92,9 +98,12 @@ export function useSimulation() {
   const processTick = useCallback(async () => {
     tickRef.current++;
 
-    // ── Generate / replay telemetry ──
+    // ── Generate / replay / interactive telemetry ──
     let data: DrivingData;
-    if (replayIndexRef.current >= 0) {
+    if (mode === 'interactive') {
+      if (!interactiveDataRef.current) return; // wait for game
+      data = { ...interactiveDataRef.current, timestamp: Date.now() };
+    } else if (replayIndexRef.current >= 0) {
       if (replayIndexRef.current < DANGEROUS_SCENARIOS.length) {
         data = { ...DANGEROUS_SCENARIOS[replayIndexRef.current], timestamp: Date.now() };
         replayIndexRef.current++;
@@ -259,6 +268,7 @@ export function useSimulation() {
   }, []);
 
   return {
+    mode, setMode, updateInteractiveData,
     isRunning, currentData, riskResult, alerts, history, driverProfile,
     emotionState, accidentProbability, timeToImpact, isEmergency, replayEvents, showReplay,
     start, stop, reset, replayScenario, clearAlerts,
