@@ -96,28 +96,6 @@ export default function TopBar({
           </motion.button>
 
           <motion.button
-            className={`ctrl-btn ${mode === 'interactive' ? 'ctrl-btn--accent' : ''}`}
-            onClick={onToggleMode}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title="Toggle Interactive 2D Game Mode"
-            style={{ padding: '0 16px' }}
-          >
-            <span>{mode === 'interactive' ? '🎮 2D Game Mode' : '🤖 Auto Mode'}</span>
-          </motion.button>
-
-          <motion.a
-            href="/simulation"
-            className="ctrl-btn ctrl-btn--accent"
-            style={{ padding: '0 16px', background: 'rgba(0, 212, 255, 0.2)', borderColor: '#00d4ff', color: '#fff', textDecoration: 'none' }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title="Start 3D Driving Simulation"
-          >
-            <span>🏎️ 3D Simulation</span>
-          </motion.a>
-
-          <motion.button
             className="ctrl-btn ctrl-btn--accent"
             onClick={onReplay}
             whileHover={{ scale: 1.05 }}

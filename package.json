@@ -11,6 +11,7 @@
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@react-three/postprocessing": "^3.0.4",
     "@types/three": "^0.184.1",
     "face-api.js": "^0.22.2",
     "framer-motion": "^12.40.0",

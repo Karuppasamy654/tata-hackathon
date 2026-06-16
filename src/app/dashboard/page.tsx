@@ -19,8 +19,6 @@ import AccidentProbability from '@/components/AccidentProbability';
 import EmergencyOverlay from '@/components/EmergencyOverlay';
 import NearMissReplay from '@/components/NearMissReplay';
 import AIExplanationPanel from '@/components/AIExplanationPanel';
-import InteractiveDrive from '@/components/InteractiveDrive';
-
 export default function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -34,10 +32,10 @@ export default function Dashboard() {
   } = useSimulation();
 
   const { playAlert } = useSoundAlert();
-  const [isDark, setIsDark]       = useState(true);
-  const [isMuted, setIsMuted]     = useState(true);
+  const [isDark, setIsDark] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
   const [showWelcome, setShowWelcome] = useState(true);
-  const prevAlertCountRef         = useRef(0);
+  const prevAlertCountRef = useRef(0);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth');
@@ -139,10 +137,7 @@ export default function Dashboard() {
           isMuted={isMuted}
           isEmergency={isEmergency}
           mode={mode}
-          onToggleMode={() => {
-             setMode(mode === 'auto' ? 'interactive' : 'auto');
-             if (mode === 'auto' && !isRunning) start();
-          }}
+          onToggleMode={() => { }} // Legacy
           onStart={start}
           onStop={stop}
           onReset={reset}
@@ -152,135 +147,96 @@ export default function Dashboard() {
           onToggleMute={() => setIsMuted(m => !m)}
         />
 
-        {mode === 'interactive' ? (
-           <div className="relative w-full flex-1 overflow-hidden p-4">
-             {/* The Game Layer */}
-             <div className="absolute inset-4 z-0">
-               <InteractiveDrive updateInteractiveData={updateInteractiveData} isEmergency={isEmergency} />
-             </div>
-             
-             {/* The UI Overlay Layer */}
-             <div className="absolute inset-4 z-10 pointer-events-none flex flex-col justify-between p-6">
-                <div className="flex justify-between items-start">
-                   <div className="w-80 pointer-events-auto">
-                      <div className="glass-card mb-4 bg-slate-900/80 backdrop-blur-md">
-                         <DriverEmotionPanel emotionState={emotionState} />
-                      </div>
-                      <div className="glass-card bg-slate-900/80 backdrop-blur-md">
-                         <AIExplanationPanel riskResult={riskResult} accidentProbability={accidentProbability} />
-                      </div>
-                   </div>
-                   <div className="w-96 pointer-events-auto max-h-[50vh] overflow-hidden">
-                      <AlertPanel alerts={alerts} onClear={clearAlerts} />
-                   </div>
-                </div>
-                
-                <div className="flex justify-end items-end gap-6 pointer-events-auto">
-                   <div className="w-80">
-                      <div className="glass-card bg-slate-900/80 backdrop-blur-md">
-                         <AccidentProbability probability={accidentProbability} timeToImpact={timeToImpact} />
-                      </div>
-                   </div>
-                   <div className="w-80">
-                      <div className="glass-card center-risk-card bg-slate-900/80 backdrop-blur-md scale-90 origin-bottom-right">
-                         <RiskMeter score={riskResult.score} level={riskResult.level} color={riskResult.color} factors={riskResult.factors} />
-                      </div>
-                   </div>
-                </div>
-             </div>
-           </div>
-        ) : (
-          <div className="dashboard-grid overflow-y-auto">
-            {/* ── LEFT COLUMN: Telemetry + Emotion ── */}
-            <div className="dash-col">
-              <motion.div
-                className="glass-card"
-                initial={{ opacity: 0, x: -40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-              >
-                <DrivingMetrics data={currentData} />
-              </motion.div>
-
-              <motion.div
-                className="glass-card"
-                initial={{ opacity: 0, x: -40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                <DriverEmotionPanel emotionState={emotionState} />
-              </motion.div>
-            </div>
-
-            {/* ── CENTER COLUMN: Risk Meter + Accident Prob + AI ── */}
-            <div className="dash-col">
-              <motion.div
-                className="glass-card center-risk-card"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                <RiskMeter
-                  score={riskResult.score}
-                  level={riskResult.level}
-                  color={riskResult.color}
-                  factors={riskResult.factors}
-                />
-              </motion.div>
-
-              <motion.div
-                className="glass-card"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-              >
-                <AccidentProbability probability={accidentProbability} timeToImpact={timeToImpact} />
-              </motion.div>
-
-              <motion.div
-                className="glass-card"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.35 }}
-              >
-                <AIExplanationPanel
-                  riskResult={riskResult}
-                  accidentProbability={accidentProbability}
-                />
-              </motion.div>
-            </div>
-
-            {/* ── RIGHT COLUMN: Alerts (full height) ── */}
+        <div className="dashboard-grid overflow-y-auto">
+          {/* ── LEFT COLUMN: Telemetry + Emotion ── */}
+          <div className="dash-col">
             <motion.div
-              className="glass-card dash-right-col"
-              initial={{ opacity: 0, x: 40 }}
+              className="glass-card"
+              initial={{ opacity: 0, x: -40 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <AlertPanel alerts={alerts} onClear={clearAlerts} />
-            </motion.div>
-
-            {/* ── BOTTOM ROW ── */}
-            <motion.div
-              className="glass-card"
-              style={{ gridColumn: 'span 2' }}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <BehaviorGraph history={history} />
+              <DrivingMetrics data={currentData} />
             </motion.div>
 
             <motion.div
               className="glass-card"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <DriverScore profile={driverProfile} />
+              <DriverEmotionPanel emotionState={emotionState} />
             </motion.div>
           </div>
-        )}
+
+          {/* ── CENTER COLUMN: Risk Meter + Accident Prob + AI ── */}
+          <div className="dash-col">
+            <motion.div
+              className="glass-card center-risk-card"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <RiskMeter
+                score={riskResult.score}
+                level={riskResult.level}
+                color={riskResult.color}
+                factors={riskResult.factors}
+              />
+            </motion.div>
+
+            <motion.div
+              className="glass-card"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <AccidentProbability probability={accidentProbability} timeToImpact={timeToImpact} />
+            </motion.div>
+
+            <motion.div
+              className="glass-card"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.35 }}
+            >
+              <AIExplanationPanel
+                riskResult={riskResult}
+                accidentProbability={accidentProbability}
+              />
+            </motion.div>
+          </div>
+
+          {/* ── RIGHT COLUMN: Alerts (full height) ── */}
+          <motion.div
+            className="glass-card dash-right-col"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <AlertPanel alerts={alerts} onClear={clearAlerts} />
+          </motion.div>
+
+          {/* ── BOTTOM ROW ── */}
+          <motion.div
+            className="glass-card"
+            style={{ gridColumn: 'span 2' }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <BehaviorGraph history={history} />
+          </motion.div>
+
+          <motion.div
+            className="glass-card"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            <DriverScore profile={driverProfile} />
+          </motion.div>
+        </div>
       </div>
     </>
   );
