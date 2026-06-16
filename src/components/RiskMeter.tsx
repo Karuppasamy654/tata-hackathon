@@ -1,20 +1,22 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { RiskLevel } from '@/hooks/useSimulation';
+import { AlertPriority } from '@/hooks/useVoiceAssistant';
 import { useEffect, useState } from 'react';
 
 interface RiskMeterProps {
   score: number;
-  level: RiskLevel;
+  level: AlertPriority | 'NONE';
   color: string;
   factors: string[];
 }
 
-const RISK_LABELS: Record<RiskLevel, string> = {
-  low: 'LOW RISK',
-  medium: 'MEDIUM RISK',
-  high: 'HIGH RISK',
+const RISK_LABELS: Record<AlertPriority | 'NONE', string> = {
+  NONE: 'NOMINAL',
+  LOW: 'LOW RISK',
+  MEDIUM: 'MEDIUM RISK',
+  HIGH: 'HIGH RISK',
+  CRITICAL: 'CRITICAL RISK'
 };
 
 function AnimatedNumber({ value }: { value: number }) {
@@ -50,7 +52,7 @@ export default function RiskMeter({ score, level, color, factors }: RiskMeterPro
   const dashOffset = arcLength - filledLength;
 
   const startAngle = 135;
-  const isHigh = level === 'high';
+  const isHigh = level === 'HIGH' || level === 'CRITICAL';
 
   return (
     <div className="risk-meter-container">
@@ -82,7 +84,7 @@ export default function RiskMeter({ score, level, color, factors }: RiskMeterPro
               <motion.stop offset="0%" animate={{ stopColor: color }} transition={{ duration: 0.8 }} />
               <motion.stop
                 offset="100%"
-                animate={{ stopColor: level === 'high' ? '#ff0044' : level === 'medium' ? '#ff8800' : '#00d4ff' }}
+                animate={{ stopColor: level === 'CRITICAL' || level === 'HIGH' ? '#ff0044' : level === 'MEDIUM' ? '#ff8800' : '#00d4ff' }}
                 transition={{ duration: 0.8 }}
               />
             </linearGradient>

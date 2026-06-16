@@ -1,13 +1,15 @@
-// AI Risk Prediction Engine (rule-based mock)
+// AI Risk Prediction Engine (Rule-based + ML inspired)
 import { DrivingData } from './simulation';
-
-export type RiskLevel = 'low' | 'medium' | 'high';
+import { FaceState } from '@/hooks/useFaceDetection';
+import { AlertPriority } from '@/hooks/useVoiceAssistant';
 
 export interface RiskResult {
   score: number; // 0-100
-  level: RiskLevel;
+  level: AlertPriority | 'NONE';
   factors: string[];
   color: string;
+  explanation: string;
+  voiceMessage?: string;
 }
 
 // Sigmoid-like function to cap risk score smoothly
@@ -15,100 +17,97 @@ function sigmoid(x: number): number {
   return 100 / (1 + Math.exp(-0.06 * (x - 50)));
 }
 
-export function calculateRiskScore(data: DrivingData): RiskResult {
+export function calculateRiskScore(data: DrivingData, faceState: FaceState): RiskResult {
   let rawScore = 0;
   const factors: string[] = [];
+  let explanation = "Normal driving behavior.";
+  let voiceMessage = "";
 
-  // Speed factor (0-30 points)
+  // 1. Evaluate Face State (High Priority)
+  if (faceState === 'SLEEPY') {
+    rawScore += 50;
+    factors.push('Sleepiness detected');
+  } else if (faceState === 'DISTRACTED') {
+    rawScore += 30;
+    factors.push('Distracted driving');
+  } else if (faceState === 'FATIGUED') {
+    rawScore += 20;
+    factors.push('Driver fatigue');
+  }
+
+  // 2. Evaluate Driving Data
   if (data.speed > 120) {
     rawScore += 30;
     factors.push('Extreme speed');
-  } else if (data.speed > 100) {
-    rawScore += 22;
-    factors.push('Very high speed');
   } else if (data.speed > 80) {
-    rawScore += 12;
-    factors.push('High speed');
-  } else if (data.speed > 60) {
-    rawScore += 5;
+    rawScore += 15;
   }
 
-  // Brake intensity factor (0-25 points)
   if (data.brakeIntensity > 0.8) {
     rawScore += 25;
     factors.push('Emergency braking');
-  } else if (data.brakeIntensity > 0.5) {
-    rawScore += 15;
-    factors.push('Hard braking');
-  } else if (data.brakeIntensity > 0.3) {
-    rawScore += 8;
-    factors.push('Moderate braking');
   }
 
-  // Distance to vehicle factor (0-30 points)
-  if (data.distanceToVehicle < 5) {
+  if (data.distanceToVehicle < 10) {
     rawScore += 30;
     factors.push('Critical distance');
-  } else if (data.distanceToVehicle < 10) {
-    rawScore += 22;
-    factors.push('Very close distance');
   } else if (data.distanceToVehicle < 20) {
-    rawScore += 12;
-    factors.push('Close distance');
-  } else if (data.distanceToVehicle < 30) {
-    rawScore += 5;
-  }
-
-  // Acceleration factor (0-15 points)
-  const absAccel = Math.abs(data.acceleration);
-  if (absAccel > 7) {
     rawScore += 15;
-    factors.push('Severe acceleration change');
-  } else if (absAccel > 4) {
-    rawScore += 10;
-    factors.push('Sudden acceleration');
-  } else if (absAccel > 2) {
-    rawScore += 4;
+    factors.push('Close distance');
   }
 
-  // Steering angle factor (0-15 points)
   const absSteer = Math.abs(data.steeringAngle);
   if (absSteer > 40) {
     rawScore += 15;
     factors.push('Extreme steering');
-  } else if (absSteer > 25) {
-    rawScore += 10;
-    factors.push('Sharp turn');
-  } else if (absSteer > 15) {
-    rawScore += 5;
   }
 
-  // Compound danger multipliers
-  if (data.speed > 80 && data.distanceToVehicle < 15) {
-    rawScore += 15;
-    if (!factors.includes('Tailgating at speed')) factors.push('Tailgating at speed');
-  }
-  if (data.speed > 80 && data.brakeIntensity > 0.6) {
-    rawScore += 12;
-    if (!factors.includes('High-speed braking')) factors.push('High-speed braking');
+  // 3. AI Compound Rules (The "Smart" part)
+  if (faceState === 'SLEEPY' && absSteer > 20) {
+    rawScore += 40;
+    explanation = "Sleepy + steering unstable";
+    voiceMessage = "Stop the vehicle immediately. You are falling asleep.";
+  } else if (faceState === 'DISTRACTED' && absSteer > 15) {
+    rawScore += 25;
+    explanation = "Distracted while turning";
+    voiceMessage = "Focus on the road.";
+  } else if (data.speed > 80 && data.distanceToVehicle < 15) {
+    rawScore += 25;
+    explanation = "High speed + low distance";
+    voiceMessage = "Brake immediately! Vehicle ahead is too close.";
+  } else if (faceState === 'DISTRACTED' && data.speed > 60) {
+    rawScore += 20;
+    explanation = "High speed combined with distraction";
+    voiceMessage = "Please keep your eyes on the road.";
+  } else if (faceState === 'FATIGUED') {
+    explanation = "Driver fatigue detected";
+    if (Math.random() < 0.05) voiceMessage = "You seem tired, please take a break soon.";
+  } else if (factors.length > 0) {
+    explanation = factors.join(' and ');
   }
 
   // Apply sigmoid to smooth the score
   const score = Math.round(sigmoid(rawScore));
 
-  // Determine risk level
-  let level: RiskLevel;
-  let color: string;
-  if (score >= 70) {
-    level = 'high';
+  // Determine risk level & visual/audio mapping
+  let level: AlertPriority | 'NONE' = 'NONE';
+  let color = '#00ff88';
+
+  if (score >= 85 || explanation.includes("Sleepy + steering unstable")) {
+    level = 'CRITICAL';
+    color = '#ff0000';
+    if (!voiceMessage) voiceMessage = "Danger detected. Stop the vehicle.";
+  } else if (score >= 65) {
+    level = 'HIGH';
     color = '#ff3366';
+    if (!voiceMessage) voiceMessage = "Warning! Please drive carefully.";
   } else if (score >= 40) {
-    level = 'medium';
+    level = 'MEDIUM';
+    color = '#ff9900';
+  } else if (score >= 20) {
+    level = 'LOW';
     color = '#ffd600';
-  } else {
-    level = 'low';
-    color = '#00ff88';
   }
 
-  return { score, level, factors, color };
+  return { score, level, factors, color, explanation, voiceMessage };
 }

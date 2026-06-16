@@ -81,18 +81,18 @@ export default function EmergencyOverlay({ isVisible, onDismiss }: EmergencyOver
               className="emergency-title"
               animate={{
                 textShadow: [
-                  '0 0 20px #ff3366, 0 0 40px #ff3366',
-                  '0 0 60px #ff3366, 0 0 100px #ff3366',
-                  '0 0 20px #ff3366, 0 0 40px #ff3366',
+                  '0 0 20px #ff0000, 0 0 40px #ff0000',
+                  '0 0 60px #ff0000, 0 0 100px #ff0000',
+                  '0 0 20px #ff0000, 0 0 40px #ff0000',
                 ],
               }}
               transition={{ duration: 0.7, repeat: Infinity }}
             >
-              SYSTEM TAKING CONTROL
+              STOP THE VEHICLE IMMEDIATELY
             </motion.h1>
 
             <div className="emergency-subtitle">
-              CRITICAL RISK THRESHOLD EXCEEDED — AUTONOMOUS INTERVENTION ACTIVE
+              CRITICAL DANGER DETECTED — PULL OVER SAFELY
             </div>
 
             {/* Action items */}
@@ -138,11 +138,11 @@ export default function EmergencyOverlay({ isVisible, onDismiss }: EmergencyOver
                 whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,51,102,0.25)' }}
                 whileTap={{ scale: 0.95 }}
               >
-                RESUME MANUAL CONTROL
+                RESUME MONITORING
               </motion.button>
             ) : (
               <div className="emergency-countdown">
-                Manual control resumes in{' '}
+                Monitoring resumes in{' '}
                 <motion.span
                   key={countdown}
                   initial={{ scale: 1.4, color: '#ff3366' }}

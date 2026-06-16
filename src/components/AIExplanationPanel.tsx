@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { RiskResult } from '@/hooks/useSimulation';
+import { RiskResult } from '@/lib/riskEngine';
 
 interface AIExplanationPanelProps {
   riskResult: RiskResult;
