@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Trophy, Medal, Award, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ParticleBackground from '@/components/ParticleBackground';
+import { useAuth } from '@/lib/authContext';
 
 interface LeaderboardUser {
   id: number;
@@ -52,21 +53,32 @@ export default function LeaderboardPage() {
   const [users, setUsers]     = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { user: authUser, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${API_URL}/leaderboard`);
-        if (res.ok) setUsers(await res.json());
+        if (authUser) {
+          setUsers([{
+            id: authUser.id,
+            name: authUser.name,
+            safety_score: authUser.safety_score,
+            driving_sessions: authUser.driving_sessions
+          }]);
+        } else {
+          setUsers([]);
+        }
       } catch (e) {
         console.error('Failed to fetch leaderboard', e);
       } finally {
         setLoading(false);
       }
     }
-    fetchLeaderboard();
-  }, []);
+    
+    if (!authLoading) {
+      fetchLeaderboard();
+    }
+  }, [authUser, authLoading]);
 
   return (
     <div className="min-h-screen bg-[#060810] text-white p-8 relative overflow-hidden">
